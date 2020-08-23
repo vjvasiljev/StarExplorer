@@ -131,3 +131,92 @@ end
 
 ship:addEventListener("tap", fireLaser)
 
+local function dragShip(event)
+    local ship = event.target
+    local phase = event.phase
+    if ("began" == phase) then
+        -- set the touch focus on the ship
+        display.currentStage:setFocus(ship)
+        -- Store initial offset position
+        ship.touchOffsetX = event.x - ship.x
+    elseif ("moved" == phase) then
+        ship.x = event.x - ship.touchOffsetX
+    elseif ("ended" == phase or "cancelled" == phase) then
+        -- Release touch focus on the ship
+        display.currentStage:setFocus(nil)
+    end
+    return true
+end
+
+ship:addEventListener("touch", dragShip)
+
+local function gameLoop()
+    -- create new asteroid
+    fireLaser()
+    createAsteroid()
+    -- remove asteroids that have drifted off screen
+    for i = #asteroidsTable, 1, -1 do
+        local thisAsteroid = asteroidsTable[i]
+
+        if (thisAsteroid.x < -100 or thisAsteroid.x > display.contentWidth + 100 or
+            thisAsteroid.y < -100 or thisAsteroid.y > display.contentHeight +
+            100) then
+            display.remove(thisAsteroid)
+            table.remove(asteroidsTable, i)
+        end
+    end
+end
+
+gameLoopTimer = timer.performWithDelay(100, gameLoop, 0);
+
+local function restoreShip()
+    print("restore ship")
+    ship.isBodyActive = false;
+    ship.x = display.contentCenterX;
+    ship.y = display.contentHeight - 100
+    -- fade in the ship
+    transition.to(ship, {
+        alpha = 1,
+        time = 4000,
+        onComplete = function()
+            ship.isBodyActive = true
+            died = false
+        end
+    })
+end
+
+local function onCollision(event)
+    local obj1 = event.object1
+    local obj2 = event.object2
+    if ((obj1.myName == "laser" and obj2.myName == "asteroid") or
+        (obj1.myName == "asteroid" and obj2.myName == "laser")) then
+        display.remove(obj1);
+        display.remove(obj2);
+
+        for i = #asteroidsTable, 1, -1 do
+            if (asteroidsTable[i] == obj1 or asteroidsTable[i] == obj2) then
+                table.remove(asteroidsTable, i)
+                break
+            end
+        end
+        -- increase score
+        score = score + 100
+        scoreText.text = "Score: " .. score
+    elseif ((obj1.myName == "ship" and obj2.myName == "asteroid") or
+        (obj1.myName == "asteroid" and obj2.myName == "ship")) then
+        if (died == false) then
+            died = true
+            lives = lives - 1
+            livesText.text = "Lives: " .. lives
+            if (lives == 0) then
+                display.remove(ship);
+            else
+                ship.alpha = 0
+                timer.performWithDelay(1000, restoreShip);
+            end
+        end
+    end
+
+end
+
+Runtime:addEventListener("collision", onCollision)
