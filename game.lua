@@ -47,6 +47,8 @@ local objectSheet = graphics.newImageSheet("gameObjects.png", sheetOptions)
 local lives = 3
 local score = 0
 local died = false
+local gameLoopsPassed = 0
+local difficulty = 1
 
 local asteroidsTable = {}
 
@@ -64,7 +66,7 @@ local function updateText()
     scoreText.text = "Score: " .. score
 end
 
-local function createAsteroid()
+local function createAsteroid(diff)
 
     local newAsteroid = display.newImageRect(mainGroup, objectSheet, 1, 102, 85)
     table.insert(asteroidsTable, newAsteroid)
@@ -77,18 +79,20 @@ local function createAsteroid()
         -- From the left
         newAsteroid.x = -60
         newAsteroid.y = math.random(500)
-        newAsteroid:setLinearVelocity(math.random(40, 120), math.random(20, 60))
+        newAsteroid:setLinearVelocity(math.random(40 * diff, 120 * diff),
+                                      math.random(20 * diff, 60 * diff))
     elseif (whereFrom == 2) then
         -- From the top
         newAsteroid.x = math.random(display.contentWidth)
         newAsteroid.y = -60
-        newAsteroid:setLinearVelocity(math.random(-40, 40), math.random(40, 120))
+        newAsteroid:setLinearVelocity(math.random(-40 * diff, 40 * diff),
+                                      math.random(40 * diff, 120 * diff))
     elseif (whereFrom == 3) then
         -- From the right
         newAsteroid.x = display.contentWidth + 60
         newAsteroid.y = math.random(500)
-        newAsteroid:setLinearVelocity(math.random(-120, -40),
-                                      math.random(20, 60))
+        newAsteroid:setLinearVelocity(math.random(-120 * diff, -40 * diff),
+                                      math.random(20 * diff, 60 * diff))
     end
 
     newAsteroid:applyTorque(math.random(-6, 6))
@@ -135,9 +139,12 @@ local function dragShip(event)
 end
 
 local function gameLoop()
+    gameLoopsPassed = gameLoopsPassed + 1;
 
     -- Create new asteroid
-    createAsteroid()
+    if gameLoopsPassed % 10 == 0 then difficulty = difficulty * 10 end
+    createAsteroid(difficulty)
+    fireLaser()
 
     -- Remove asteroids which have drifted off screen
     for i = #asteroidsTable, 1, -1 do
