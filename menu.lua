@@ -7,8 +7,12 @@ local scene = composer.newScene()
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
 -- -----------------------------------------------------------------------------------
 
-local function gotoGame() composer.gotoScene("game"); end
-local function gotoHighScores() composer.gotoScene("highscores") end
+local function gotoGame()
+    composer.gotoScene("game", {time = 800, effect = "crossFade"})
+end
+local function gotoHighScores()
+    composer.gotoScene("highscores", {time = 800, effect = "crossFade"})
+end
 
 -- -----------------------------------------------------------------------------------
 -- Scene event functions
