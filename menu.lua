@@ -14,6 +14,7 @@ local function gotoHighScores()
     composer.gotoScene("highscores", {time = 800, effect = "crossFade"})
 end
 
+local musicTrack
 -- -----------------------------------------------------------------------------------
 -- Scene event functions
 -- -----------------------------------------------------------------------------------
@@ -45,6 +46,7 @@ function scene:create(event)
     playButton:addEventListener("tap", gotoGame)
     highScoresButton:addEventListener("tap", gotoHighScores)
 
+    musicTrack = audio.loadStream("audio/Escape_Looping.wav");
 end
 
 -- show()
@@ -58,7 +60,7 @@ function scene:show(event)
 
     elseif (phase == "did") then
         -- Code here runs when the scene is entirely on screen
-
+        audio.play(musicTrack, {channel = 1, loops = -1});
     end
 end
 
@@ -73,7 +75,7 @@ function scene:hide(event)
 
     elseif (phase == "did") then
         -- Code here runs immediately after the scene goes entirely off screen
-
+        audio.stop(1);
     end
 end
 
@@ -82,7 +84,7 @@ function scene:destroy(event)
 
     local sceneGroup = self.view
     -- Code here runs prior to the removal of scene's view
-
+    audio.dispose(musicTrack);
 end
 
 -- -----------------------------------------------------------------------------------

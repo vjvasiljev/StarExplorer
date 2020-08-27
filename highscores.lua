@@ -7,6 +7,8 @@ local scene = composer.newScene()
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
 -- -----------------------------------------------------------------------------------
 -- initialize vars
+local musicTrack
+
 local json = require("json")
 local scoresTable = {};
 local filePath = system.pathForFile("scores.json", system.DocumentsDirectory);
@@ -89,6 +91,8 @@ function scene:create(event)
                                        native.systemFont, 44)
     menuButton:setFillColor(0.75, 0.78, 1)
     menuButton:addEventListener("tap", gotoMenu)
+
+    musicTrack = audio.loadStream("audio/Midnight-Crawlers_Looping.wav");
 end
 
 -- show()
@@ -102,7 +106,7 @@ function scene:show(event)
 
     elseif (phase == "did") then
         -- Code here runs when the scene is entirely on screen
-
+        audio.play(musicTrack, {channel = 1, loops = -1});
     end
 end
 
@@ -117,6 +121,7 @@ function scene:hide(event)
 
     elseif (phase == "did") then
         -- Code here runs immediately after the scene goes entirely off screen
+        audio.stop(1);
         composer.removeScene("highscores")
     end
 end
@@ -126,7 +131,7 @@ function scene:destroy(event)
 
     local sceneGroup = self.view
     -- Code here runs prior to the removal of scene's view
-
+    audio.dispose(musicTrack);
 end
 
 -- -----------------------------------------------------------------------------------
