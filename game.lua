@@ -72,7 +72,8 @@ end
 
 local function createAsteroid(diff)
 
-    local newAsteroid = display.newImageRect(mainGroup, objectSheet, 1, 102, 85)
+    local newAsteroid = display.newImageRect(mainGroup, objectSheet,
+                                             math.random(3), 102, 85)
     table.insert(asteroidsTable, newAsteroid)
     physics.addBody(newAsteroid, "dynamic", {radius = 40, bounce = 0.8})
     newAsteroid.myName = "asteroid"
@@ -185,6 +186,22 @@ local function endGame()
     composer.gotoScene("highscores", {time = 800, effect = "crossFade"});
 end
 
+local function spawnPowerUp(x, y)
+    -- can't add physics body while collision event occurs, added 1 ms timer
+    timer.performWithDelay(1, function()
+        local powerUp = display.newImageRect(mainGroup,
+                                             "resources/img/powerup/PowerUp_01.png",
+                                             75, 90);
+        powerUp.x = x
+        powerUp.y = y
+        physics.addBody(powerUp, "dynamic", {isSensor = true})
+        powerUp.myName = "powerup"
+        powerUp.isBullet = true
+        powerUp:setLinearVelocity(0, 100)
+    end, 1);
+
+end
+
 local function onCollision(event)
 
     if (event.phase == "began") then
@@ -200,6 +217,9 @@ local function onCollision(event)
 
             -- plsy explosion sound
             audio.play(explosionSound)
+
+            -- spawn powerup
+            spawnPowerUp(obj1.x, obj1.y)
 
             for i = #asteroidsTable, 1, -1 do
                 if (asteroidsTable[i] == obj1 or asteroidsTable[i] == obj2) then
