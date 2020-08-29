@@ -49,8 +49,11 @@ local score = 0
 local died = false
 local gameLoopsPassed = 0
 local gameLoopTime = 1000
+
 local difficulty = 1
 local fireSpeed = 1
+local weaponUpgrade = 1
+
 local immuneFlag = false
 local immuneTimer = 10000
 local immuneOneBlinkTime = 100
@@ -110,21 +113,48 @@ local function createAsteroid(diff)
 end
 local function fireLaser()
     local function createLaser()
+        local function generateBullet(x, y)
+            local newLaser = display.newImageRect(mainGroup, objectSheet, 5, 14,
+                                                  40)
+            physics.addBody(newLaser, "dynamic", {isSensor = true})
+            newLaser.isBullet = true
+            newLaser.myName = "laser"
+
+            newLaser.x = x
+            newLaser.y = y
+            newLaser:toBack()
+
+            transition.to(newLaser,
+                          {
+                y = -40,
+                time = 500,
+                onComplete = function() display.remove(newLaser) end
+            })
+        end
+
         audio.play(fireSound);
-        local newLaser = display.newImageRect(mainGroup, objectSheet, 5, 14, 40)
-        physics.addBody(newLaser, "dynamic", {isSensor = true})
-        newLaser.isBullet = true
-        newLaser.myName = "laser"
+        if (weaponUpgrade == 1) then
+            generateBullet(ship.x, ship.y)
+        elseif (weaponUpgrade == 2) then
+            generateBullet(ship.x - 25, ship.y)
+            generateBullet(ship.x + 25, ship.y)
+        elseif (weaponUpgrade == 3) then
+            generateBullet(ship.x - 35, ship.y)
+            generateBullet(ship.x + 35, ship.y)
+            generateBullet(ship.x, ship.y)
+        elseif (weaponUpgrade == 4) then
+            generateBullet(ship.x - 40, ship.y)
+            generateBullet(ship.x + 40, ship.y)
+            generateBullet(ship.x - 20, ship.y)
+            generateBullet(ship.x + 20, ship.y)
+        elseif (weaponUpgrade >= 5) then
+            generateBullet(ship.x - 50, ship.y)
+            generateBullet(ship.x + 50, ship.y)
+            generateBullet(ship.x - 25, ship.y)
+            generateBullet(ship.x + 25, ship.y)
+            generateBullet(ship.x, ship.y)
+        end
 
-        newLaser.x = ship.x
-        newLaser.y = ship.y
-        newLaser:toBack()
-
-        transition.to(newLaser, {
-            y = -40,
-            time = 500,
-            onComplete = function() display.remove(newLaser) end
-        })
     end
     -- create first bullet of game loop
     createLaser()
@@ -215,7 +245,7 @@ end
 
 local function spawnPowerUp(x, y)
     -- can't add physics body while collision event occurs, added 1 ms timer
-    powerUpType = 3
+    powerUpType = math.random(4)
     timer.performWithDelay(1, function()
         local powerUp
         if (powerUpType == 1) then
@@ -351,6 +381,7 @@ local function onCollision(event)
                                            immuneTimer / immuneOneBlinkTime));
 
             elseif (powerUpObj.type == "weapon") then
+                weaponUpgrade = weaponUpgrade + 1
             end
             -- remove powerup from table
             for i = #powerUpsTable, 1, -1 do
