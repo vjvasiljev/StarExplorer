@@ -48,9 +48,15 @@ local lives = 3
 local score = 0
 local died = false
 local gameLoopsPassed = 0
+local gameLoopTime = 1000
 local difficulty = 1
+local fireSpeed = 1
+local immuneFlag = false
+local immuneTimer = 10000
+local immuneOneBlinkTime = 100
 
 local asteroidsTable = {}
+local powerUpsTable = {}
 
 local ship
 local gameLoopTimer
@@ -103,21 +109,30 @@ local function createAsteroid(diff)
     newAsteroid:applyTorque(math.random(-6, 6))
 end
 local function fireLaser()
-    audio.play(fireSound);
-    local newLaser = display.newImageRect(mainGroup, objectSheet, 5, 14, 40)
-    physics.addBody(newLaser, "dynamic", {isSensor = true})
-    newLaser.isBullet = true
-    newLaser.myName = "laser"
+    local function createLaser()
+        audio.play(fireSound);
+        local newLaser = display.newImageRect(mainGroup, objectSheet, 5, 14, 40)
+        physics.addBody(newLaser, "dynamic", {isSensor = true})
+        newLaser.isBullet = true
+        newLaser.myName = "laser"
 
-    newLaser.x = ship.x
-    newLaser.y = ship.y
-    newLaser:toBack()
+        newLaser.x = ship.x
+        newLaser.y = ship.y
+        newLaser:toBack()
 
-    transition.to(newLaser, {
-        y = -40,
-        time = 500,
-        onComplete = function() display.remove(newLaser) end
-    })
+        transition.to(newLaser, {
+            y = -40,
+            time = 500,
+            onComplete = function() display.remove(newLaser) end
+        })
+    end
+    -- create first bullet of game loop
+    createLaser()
+    -- adjust firing speed if more then 1 bullet per gameLoop
+    if (fireSpeed >= 2) then
+        local fireDelay = math.floor(gameLoopTime / fireSpeed)
+        timer.performWithDelay(fireDelay, createLaser, fireSpeed - 1);
+    end
 end
 
 local function dragShip(event)
@@ -143,6 +158,26 @@ local function dragShip(event)
     return true -- Prevents touch propagation to underlying objects
 end
 
+local function removeAssetsOffScreen(assetTable)
+    for i = #assetTable, 1, -1 do
+        local thisAsset = assetTable[i]
+        if (thisAsset.x < -100 or thisAsset.x > display.contentWidth + 100 or
+            thisAsset.y < -100 or thisAsset.y > display.contentHeight + 100) then
+            display.remove(thisAsset)
+            table.remove(assetTable, i)
+        end
+    end
+end
+
+local function removeAssets(assetTable, obj1, obj2)
+    for i = #assetTable, 1, -1 do
+        if (assetTable[i] == obj1 or assetTable[i] == obj2) then
+            table.remove(assetTable, i)
+            break
+        end
+    end
+end
+
 local function gameLoop()
     gameLoopsPassed = gameLoopsPassed + 1;
 
@@ -150,18 +185,10 @@ local function gameLoop()
     if gameLoopsPassed % 10 == 0 then difficulty = difficulty * 10 end
     createAsteroid(difficulty)
     fireLaser()
-
     -- Remove asteroids which have drifted off screen
-    for i = #asteroidsTable, 1, -1 do
-        local thisAsteroid = asteroidsTable[i]
-
-        if (thisAsteroid.x < -100 or thisAsteroid.x > display.contentWidth + 100 or
-            thisAsteroid.y < -100 or thisAsteroid.y > display.contentHeight +
-            100) then
-            display.remove(thisAsteroid)
-            table.remove(asteroidsTable, i)
-        end
-    end
+    removeAssetsOffScreen(asteroidsTable)
+    -- Remove powerUps which have drifted off screen
+    removeAssetsOffScreen(powerUpsTable)
 end
 
 local function restoreShip()
@@ -188,14 +215,39 @@ end
 
 local function spawnPowerUp(x, y)
     -- can't add physics body while collision event occurs, added 1 ms timer
+    powerUpType = 3
     timer.performWithDelay(1, function()
-        local powerUp = display.newImageRect(mainGroup,
-                                             "resources/img/powerup/PowerUp_01.png",
-                                             75, 90);
+        local powerUp
+        if (powerUpType == 1) then
+            powerUp = display.newImageRect(mainGroup,
+                                           "resources/img/powerup/PowerUp_01.png",
+                                           75, 90);
+            powerUp.myName = "powerup"
+            powerUp.type = "speed"
+        elseif (powerUpType == 2) then
+            powerUp = display.newImageRect(mainGroup,
+                                           "resources/img/powerup/PowerUp_02.png",
+                                           75, 90);
+            powerUp.myName = "powerup"
+            powerUp.type = "live"
+        elseif (powerUpType == 3) then
+            powerUp = display.newImageRect(mainGroup,
+                                           "resources/img/powerup/PowerUp_03.png",
+                                           75, 90);
+            powerUp.myName = "powerup"
+            powerUp.type = "immune"
+        elseif (powerUpType == 4) then
+            powerUp = display.newImageRect(mainGroup,
+                                           "resources/img/powerup/PowerUp_04.png",
+                                           75, 90);
+            powerUp.myName = "powerup"
+            powerUp.type = "weapon"
+        end
+        table.insert(powerUpsTable, powerUp);
         powerUp.x = x
         powerUp.y = y
         physics.addBody(powerUp, "dynamic", {isSensor = true})
-        powerUp.myName = "powerup"
+
         powerUp.isBullet = true
         powerUp:setLinearVelocity(0, 100)
     end, 1);
@@ -221,12 +273,8 @@ local function onCollision(event)
             -- spawn powerup
             spawnPowerUp(obj1.x, obj1.y)
 
-            for i = #asteroidsTable, 1, -1 do
-                if (asteroidsTable[i] == obj1 or asteroidsTable[i] == obj2) then
-                    table.remove(asteroidsTable, i)
-                    break
-                end
-            end
+            -- remove asteroids from table
+            removeAssets(asteroidsTable, obj1, obj2)
 
             -- Increase score
             score = score + 100
@@ -242,16 +290,76 @@ local function onCollision(event)
 
                 -- Update lives
                 lives = lives - 1
-                livesText.text = "Lives: " .. lives
+                updateText()
 
-                if (lives == 0) then
-                    display.remove(ship)
-                    timer.performWithDelay(2000, endGame)
+                -- remove asteroid from screen
+                if (obj1.myName == "asteroid") then
+                    display.remove(obj1);
                 else
-                    ship.alpha = 0
-                    timer.performWithDelay(1000, restoreShip)
+                    display.remove(obj2);
+                end
+
+                -- check for immunity
+                if (immuneFlag == false) then
+                    if (lives == 0) then
+                        display.remove(ship)
+                        timer.performWithDelay(2000, endGame)
+                    else
+                        ship.alpha = 0
+                        timer.performWithDelay(1000, restoreShip)
+                    end
+                end
+
+                -- remove asteroids from table
+                removeAssets(asteroidsTable, obj1, obj2)
+
+            end
+        elseif ((obj1.myName == "ship" and obj2.myName == "powerup") or
+            (obj1.myName == "powerup" and obj2.myName == "ship")) then
+            -- get power up obj into a var
+            local powerUpObj
+            if obj1.myName == "powerup" then
+                display.remove(obj1);
+                powerUpObj = obj1
+            else
+                display.remove(obj2);
+                powerUpObj = obj2
+            end
+            -- check for powerup type and upgrade ship
+            if (powerUpObj.type == "speed") then
+                fireSpeed = fireSpeed + 1
+
+            elseif (powerUpObj.type == "live") then
+                lives = lives + 1
+                updateText()
+
+                -- TODO check for getting powerUp when already powerUp active
+            elseif (powerUpObj.type == "immune") then
+                immuneFlag = true
+                local alphaNumber = 1
+                local function immunityGfx()
+                    print(alphaNumber)
+                    if alphaNumber == 1 then
+                        alphaNumber = 0.5
+                    else
+                        alphaNumber = 1;
+                    end
+                    ship.alpha = alphaNumber
+                end
+                timer.performWithDelay(immuneOneBlinkTime, immunityGfx,
+                                       math.floor(
+                                           immuneTimer / immuneOneBlinkTime));
+
+            elseif (powerUpObj.type == "weapon") then
+            end
+            -- remove powerup from table
+            for i = #powerUpsTable, 1, -1 do
+                if (powerUpsTable[i] == obj1 or powerUpsTable[i] == obj2) then
+                    table.remove(powerUpsTable, i)
+                    break
                 end
             end
+
         end
     end
 end
@@ -315,7 +423,7 @@ function scene:show(event)
         -- Code here runs when the scene is entirely on screen
         physics.start()
         Runtime:addEventListener("collision", onCollision)
-        gameLoopTimer = timer.performWithDelay(500, gameLoop, 0)
+        gameLoopTimer = timer.performWithDelay(gameLoopTime, gameLoop, 0)
         -- Start the music
         audio.play(musicTrack, {channel = 1, loops = -1});
     end
