@@ -113,7 +113,9 @@ local function createAsteroid(diff)
 end
 local function fireLaser()
     local function createLaser()
-        local function generateBullet(x, y)
+        local function generateBullet(x, y, linearX, linearY)
+            if (not linearX) then linearX = 0; end
+            if (not linearY) then linearY = -1500; end
             local newLaser = display.newImageRect(mainGroup, objectSheet, 5, 14,
                                                   40)
             physics.addBody(newLaser, "dynamic", {isSensor = true})
@@ -123,13 +125,14 @@ local function fireLaser()
             newLaser.x = x
             newLaser.y = y
             newLaser:toBack()
-
-            transition.to(newLaser,
-                          {
-                y = -40,
-                time = 500,
-                onComplete = function() display.remove(newLaser) end
-            })
+            print(linearX, linearY)
+            newLaser:setLinearVelocity(linearX, linearY)
+            -- transition.to(newLaser, {
+            --     y = -40,
+            --     x = 100,
+            --     time = 500,
+            --     onComplete = function() display.remove(newLaser) end
+            -- })
         end
 
         audio.play(fireSound);
@@ -139,20 +142,32 @@ local function fireLaser()
             generateBullet(ship.x - 25, ship.y)
             generateBullet(ship.x + 25, ship.y)
         elseif (weaponUpgrade == 3) then
+            generateBullet(ship.x - 50, ship.y, -350)
+            generateBullet(ship.x + 50, ship.y, 350)
+            generateBullet(ship.x, ship.y)
+        elseif (weaponUpgrade == 4) then
             generateBullet(ship.x - 35, ship.y)
             generateBullet(ship.x + 35, ship.y)
             generateBullet(ship.x, ship.y)
-        elseif (weaponUpgrade == 4) then
+        elseif (weaponUpgrade == 5) then
             generateBullet(ship.x - 40, ship.y)
             generateBullet(ship.x + 40, ship.y)
             generateBullet(ship.x - 20, ship.y)
             generateBullet(ship.x + 20, ship.y)
-        elseif (weaponUpgrade >= 5) then
+        elseif (weaponUpgrade == 6) then
             generateBullet(ship.x - 50, ship.y)
             generateBullet(ship.x + 50, ship.y)
             generateBullet(ship.x - 25, ship.y)
             generateBullet(ship.x + 25, ship.y)
             generateBullet(ship.x, ship.y)
+        elseif (weaponUpgrade >= 7) then
+            generateBullet(ship.x - 50, ship.y)
+            generateBullet(ship.x + 50, ship.y)
+            generateBullet(ship.x - 25, ship.y)
+            generateBullet(ship.x + 25, ship.y)
+            generateBullet(ship.x, ship.y)
+            generateBullet(ship.x - 50, ship.y, -350)
+            generateBullet(ship.x + 50, ship.y, 350)
         end
 
     end
