@@ -126,6 +126,8 @@ local function fireLaser()
             newLaser.y = y
             newLaser:toBack()
             print(linearX, linearY)
+            if (linearX > 0) then newLaser.rotation = 20 end
+            if (linearX < 0) then newLaser.rotation = -20 end
             newLaser:setLinearVelocity(linearX, linearY)
             -- transition.to(newLaser, {
             --     y = -40,
