@@ -79,6 +79,28 @@ local function updateText()
     scoreText.text = "Score: " .. score
 end
 
+local function createObstacle()
+    local squareSize = math.floor(display.contentWidth * 0.65)
+    local newObstacle = display.newRect(mainGroup, 0, 0, squareSize, 25);
+    newObstacle.width = math.random(squareSize / 4, squareSize);
+    newObstacle:setFillColor(0.5)
+    newObstacle.y = -300
+    local place = 3
+    if place == 1 then
+        newObstacle.anchorX = 0
+    elseif place == 2 then
+        newObstacle.x = display.contentWidth
+        newObstacle.anchorX = 1
+    elseif place == 3 then
+        newObstacle.x = math.random(0, display.contentWidth)
+
+    end
+    physics.addBody(newObstacle, "dynamic", {isSensor = true})
+    newObstacle.isBullet = true
+    newObstacle.myName = "obstacle"
+    newObstacle:setLinearVelocity(0, 200)
+end
+
 local function createAsteroid(diff)
 
     local newAsteroid = display.newImageRect(mainGroup, objectSheet,
@@ -227,11 +249,11 @@ end
 
 local function gameLoop()
     gameLoopsPassed = gameLoopsPassed + 1;
-
+    createObstacle()
     -- Create new asteroid
     if gameLoopsPassed % 10 == 0 then difficulty = difficulty * 10 end
-    createAsteroid(difficulty)
-    fireLaser()
+    -- createAsteroid(difficulty)
+    -- fireLaser()
     -- Remove asteroids which have drifted off screen
     removeAssetsOffScreen(asteroidsTable)
     -- Remove powerUps which have drifted off screen
