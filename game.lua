@@ -260,6 +260,62 @@ local function gameLoop()
     removeAssetsOffScreen(powerUpsTable)
 end
 
+local bg1
+local bg2
+local runtime = 0
+local scrollSpeed = 5
+
+local function addScrollableBg()
+    local bgImage = {type = "image", filename = "background.png"}
+
+    -- Add First bg image
+    bg1 = display.newRect(0, 0, display.contentWidth,
+                          display.actualContentHeight)
+    bg1.fill = bgImage
+    bg1.x = display.contentCenterX
+    bg1.y = display.contentCenterY
+    bg1:toBack()
+
+    -- Add Second bg image
+    bg2 = display.newRect(0, 0, display.contentWidth,
+                          display.actualContentHeight)
+    bg2.fill = bgImage
+    bg2.x = display.contentCenterX
+    bg2.y = display.contentCenterY - display.actualContentHeight
+    bg2:toBack()
+end
+
+local function moveBg(dt)
+    bg1.y = bg1.y + scrollSpeed * dt
+    bg2.y = bg2.y + scrollSpeed * dt
+
+    if (bg1.y - display.contentHeight / 2) > display.actualContentHeight then
+        bg1:translate(0, -bg1.contentHeight * 2)
+    end
+    if (bg2.y - display.contentHeight / 2) > display.actualContentHeight then
+        bg2:translate(0, -bg2.contentHeight * 2)
+    end
+end
+
+local function getDeltaTime()
+    local temp = system.getTimer()
+    local dt = (temp - runtime) / (1000 / 60)
+    runtime = temp
+    return dt
+end
+
+local function enterFrame()
+    local dt = getDeltaTime()
+    moveBg(dt)
+end
+
+function init()
+    addScrollableBg()
+    Runtime:addEventListener("enterFrame", enterFrame)
+end
+
+init()
+
 local function restoreShip()
 
     ship.isBodyActive = false
@@ -455,10 +511,10 @@ function scene:create(event)
     sceneGroup:insert(uiGroup) -- Insert into the scene's view group
 
     -- Load the background
-    local background = display.newImageRect(backGroup, "background.png", 800,
-                                            1400)
-    background.x = display.contentCenterX
-    background.y = display.contentCenterY
+    -- local background = display.newImageRect(backGroup, "background.png", 800,
+    --                                         1400)
+    -- background.x = display.contentCenterX
+    -- background.y = display.contentCenterY
 
     ship = display.newImageRect(mainGroup, objectSheet, 4, 98, 79)
     ship.x = display.contentCenterX
